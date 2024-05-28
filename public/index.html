@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Enable and Verify 2FA</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <h1>Enable and Verify 2FA</h1>
+
+  <div class="form-container">
+    <form id="enable-2fa-form">
+      <label for="enable-email">Email:</label>
+      <input type="email" id="enable-email" name="email" required>
+      <button type="submit">Enable 2FA</button>
+    </form>
+    <img id="qr-code" alt="QR Code" />
+    <p id="enable-error" class="error-message"></p>
+  </div>
+
+  <div class="form-container">
+    <form id="verify-2fa-form">
+      <label for="verify-email">Email:</label>
+      <input type="email" id="verify-email" name="email" required>
+      <label for="otp">OTP:</label>
+      <input type="number" id="otp" name="otp" required>
+      <button type="submit">Verify 2FA</button>
+    </form>
+    <p id="verify-message"></p>
+    <p id="verify-error" class="error-message"></p>
+  </div>
+
+  <script>
+    async function enable2FA(event) {
+      event.preventDefault();
+      const email = document.getElementById('enable-email').value;
+      const qrCodeImage = document.getElementById('qr-code');
+      const enableError = document.getElementById('enable-error');
+      enableError.textContent = ''; // Clear previous error messages
+      try {
+        const response = await fetch('/enable2FA', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ email })
+        });
+        const data = await response.json();
+        if (response.ok) {
+          qrCodeImage.src = data.imageUrl;
+        } else {
+          enableError.textContent = data.error || 'An error occurred';
+        }
+      } catch (error) {
+        enableError.textContent = 'Error fetching QR code: ' + error.message;
+      }
+    }
+
+    async function verify2FA(event) {
+      event.preventDefault();
+      const email = document.getElementById('verify-email').value;
+      const otp = document.getElementById('otp').value;
+      const verifyMessage = document.getElementById('verify-message');
+      const verifyError = document.getElementById('verify-error');
+      verifyMessage.textContent = ''; // Clear previous messages
+      verifyError.textContent = ''; // Clear previous error messages
+      try {
+        const response = await fetch('/verify', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ email, otp })
+        });
+        const data = await response.json();
+        if (response.ok) {
+          verifyMessage.textContent = data.isValid ? 'Verification successful' : 'Invalid OTP';
+          verifyMessage.className = data.isValid ? 'success-message' : 'error-message';
+        } else {
+          verifyError.textContent = data.error || 'An error occurred';
+        }
+      } catch (error) {
+        verifyError.textContent = 'Error verifying OTP: ' + error.message;
+      }
+    }
+
+    document.getElementById('enable-2fa-form').addEventListener('submit', enable2FA);
+    document.getElementById('verify-2fa-form').addEventListener('submit', verify2FA);
+  </script>
+</body>
+</html>
